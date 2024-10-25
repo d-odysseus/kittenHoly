@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: black;
+        }
+        canvas {
+            background: black;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="textCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('textCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size to 16:9 aspect ratio
+        const width = 800;
+        const height = Math.round(width * (9/16));
+        canvas.width = width;
+        canvas.height = height;
+
+        const phrase1 = "Beware the Kitten Holy";
+        const phrase2 = "In the tower by the lake";
+        const fontSize = width / 20;
+        ctx.font = `${fontSize}px Arial`;
+
+        // Store opacity values for each letter
+        let opacities1 = new Array(phrase1.length).fill(1);
+        let opacities2 = new Array(phrase2.length).fill(0.15);
+
+        // Keep track of which indices have been matched
+        let matchedIndices1 = new Set();
+        let matchedIndices2 = new Set();
+
+        // Animation state
+        let currentIndex = 0;
+        let direction = 1; // 1 for bottom to top, -1 for top to bottom
+        let isPaused = false;
+
+        // Helper function to find first unmatched instance of a letter
+        function findFirstUnmatchedInstance(letter, phrase, matchedIndices) {
+            const searchLetter = letter.toLowerCase();
+            for (let i = 0; i < phrase.length; i++) {
+                if (phrase[i].toLowerCase() === searchLetter && !matchedIndices.has(i)) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        function drawText() {
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw each letter of the first phrase
+            let x1 = (width - ctx.measureText(phrase1).width) / 2;
+            for(let i = 0; i < phrase1.length; i++) {
+                ctx.fillStyle = `rgba(255, 255, 255, ${opacities1[i]})`;
+                ctx.fillText(phrase1[i], x1, height * 0.4);
+                x1 += ctx.measureText(phrase1[i]).width;
+            }
+
+            // Draw each letter of the second phrase
+            let x2 = (width - ctx.measureText(phrase2).width) / 2;
+            for(let i = 0; i < phrase2.length; i++) {
+                ctx.fillStyle = `rgba(255, 255, 255, ${opacities2[i]})`;
+                ctx.fillText(phrase2[i], x2, height * 0.7);
+                x2 += ctx.measureText(phrase2[i]).width;
+            }
+        }
+
+        function animate() {
+            if (!isPaused) {
+                if (direction === 1) {
+                    // Bottom to top animation
+                    if (currentIndex < phrase2.length) {
+                        // Make current letter in bottom phrase visible
+                        opacities2[currentIndex] = 1;
+                        matchedIndices2.add(currentIndex);
+                        
+                        // Find and update first unmatched corresponding letter in top phrase
+                        const matchIndex = findFirstUnmatchedInstance(phrase2[currentIndex], phrase1, matchedIndices1);
+                        if (matchIndex !== -1) {
+                            opacities1[matchIndex] = 0.15;
+                            matchedIndices1.add(matchIndex);
+                        }
+                    }
+                } else {
+                    // Top to bottom animation
+                    if (currentIndex < phrase1.length) {
+                        // Make current letter in top phrase visible
+                        opacities1[currentIndex] = 1;
+                        matchedIndices1.add(currentIndex);
+                        
+                        // Find and update first unmatched corresponding letter in bottom phrase
+                        const matchIndex = findFirstUnmatchedInstance(phrase1[currentIndex], phrase2, matchedIndices2);
+                        if (matchIndex !== -1) {
+                            opacities2[matchIndex] = 0.15;
+                            matchedIndices2.add(matchIndex);
+                        }
+                    }
+                }
+
+                drawText();
+                currentIndex++;
+
+                if (currentIndex >= (direction === 1 ? phrase2.length : phrase1.length)) {
+                    isPaused = true;
+                    setTimeout(() => {
+                        isPaused = false;
+                        currentIndex = 0;
+                        direction *= -1;
+                        // Reset matched indices for next animation cycle
+                        matchedIndices1.clear();
+                        matchedIndices2.clear();
+                        if (direction === 1) {
+                            opacities1.fill(1);
+                            opacities2.fill(0.15);
+                        } else {
+                            opacities1.fill(0.15);
+                            opacities2.fill(1);
+                        }
+                    }, 3000);
+                }
+            }
+        }
+
+        // Run animation every second
+        setInterval(animate, 1000);
+        
+        // Initial draw
+        drawText();
+    </script>
+</body>
+</html>
